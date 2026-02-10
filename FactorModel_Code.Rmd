@@ -1,0 +1,135 @@
+---
+title: 'Lecture 8: Code for replication'
+author: 'Ben Whitmee'
+date: "Lecture 8"
+output: pdf_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+require(magrittr)
+require(tidyverse)
+require(plotly)
+require(widgetframe)
+require(animation)
+require(scatterplot3d)
+require(DT)
+require(rgl)
+require(knitr)
+require(kableExtra)
+require(broom)
+require(ggfortify)
+rm(list=ls())
+```
+
+## PCA on Boston Housing 
+
+```{r, eval=T,echo=T,message=FALSE,out.width="90%",out.height="80%"}
+#First load required packages
+library(tidyverse)
+Boston<-readRDS('Boston.rds')
+Boston%>%
+  column_to_rownames('Town')%>% 
+  prcomp(scale.=TRUE)->pcaout
+screeplot(pcaout,type = 'l')
+```
+
+```{r, eval=T,echo=T,fig.align='center',out.width="90%",out.height="80%",message=FALSE}
+biplot(pcaout)
+```
+
+## Factor Analysis on Boston Dataset
+
+```{r, eval=T,echo=T,message=FALSE}
+#First load required packages
+Boston<-readRDS('Boston.rds')
+Boston%>%
+  column_to_rownames('Town')%>% 
+  factanal(factors = 2,scores = 'none',
+           rotation = 'none')->facto
+```
+
+```{r, eval=T,echo=T,message=FALSE}
+facto$loadings
+```
+
+```{r, eval=T,echo=T,message=FALSE}
+library(broom)
+#Transform "facto" to dataframe
+fa_df<-tidy(facto) 
+```
+
+```{r, eval=T,echo=T,message=FALSE}
+kable(fa_df,format='latex',digits=3)
+```
+
+```{r, eval=T,echo=T,message=FALSE,out.width="90%",out.height="80%"}
+ggplot(fa_df,aes(x=fl1,y=fl2,
+                 label=variable))+
+  geom_segment(aes(xend=fl1,
+                   yend=fl2,x=0,y=0),
+               arrow = arrow())+
+  geom_text(color='red',nudge_y = -0.05)
+```
+
+## With orthogonal rotations - varimax
+
+```{r, eval=T,echo=T,message=FALSE}
+
+Boston%>%
+  column_to_rownames('Town')%>% 
+  factanal(factors = 2,
+      scores = 'none',
+      rotation = 'varimax')->facto_vari
+```
+
+```{r, eval=T,echo=T,message=FALSE}
+fav_df<-tidy(facto_vari) #Get into data frame
+kable(fav_df,format='latex',digits=3)
+```
+
+
+```{r, eval=T,echo=T,message=FALSE, fig.height=5,out.width="80%",out.height="60%"}
+ggplot(fav_df,aes(x=fl1,y=fl2,label=variable))+
+  geom_segment(aes(xend=fl1,yend=fl2,x=0,y=0),arrow = arrow())+geom_text(color='red',nudge_y = -0.05)
+```
+
+
+## With oblique rotations - promax
+
+```{r, eval=T,echo=T,message=FALSE}
+
+Boston%>%
+  column_to_rownames('Town')%>% 
+  factanal(factors = 2,scores = 'none',
+           rotation = 'promax')->facto_promax
+```
+
+
+```{r, eval=T,echo=T,message=FALSE}
+fap_df<-tidy(facto_promax) #Get into data frame
+kable(fap_df,format='latex',digits=3)
+```
+
+
+```{r, eval=T,echo=T,message=FALSE,out.width="90%",out.height="80%"}
+ggplot(fap_df,aes(x=fl1,y=fl2,label=variable))+
+  geom_segment(aes(xend=fl1,yend=fl2,x=0,y=0),arrow = arrow())+geom_text(color='red',nudge_y = -0.05)
+```
+
+## Estimating Factor Scores
+
+```{r, eval=T,echo=T}
+Boston%>%
+  column_to_rownames('Town')%>% 
+  factanal(factors = 2,scores = 'Bartlett',
+           rotation = 'promax')->facto2
+```
+
+
+```{r, eval=T, echo=T, out.width="80%",out.height="60%"}
+ggplot(facto2$scores,
+       aes(x=Factor1,y=Factor2, label=Boston$Town))+
+  geom_text(size=6)+theme(text= element_text(size=12))
+```
